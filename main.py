@@ -41,17 +41,19 @@ def start(message):
     # give info about context
     print(message.text)
     user_id = message.chat.id
-    command, channel_id = message.text.split()[1].split("_")
-
+    try:
+        command, *channel_id = message.text.split()[1].split("_")
+    except ValueError:
+        bot.reply_to(message, "Wrong command")
+        return
+    channel_id = "_".join(channel_id)
     if "unsubscribe" in command:
         bot.reply_to(message, unsubscribe(user_id, channel_id))
         return
     elif "subscribe" in command:
         bot.reply_to(message, subscribe(user_id, channel_id))
         return
-    else:
-        bot.reply_to(message, "Wrong command")
-        return
+        
 
 def subscribe(user, channel_id):
     url_channel = f"https://youtube.com/channel/{channel_id}"
@@ -117,6 +119,9 @@ def send_welcome(message):
     with open("data.json", "r") as f:
         data = json.load(f)
     try:
+        if user_id in data["subs"][channel_id]:
+            bot.reply_to(message, "You are already subscribed to this channel")
+            return
         data["subs"][channel_id].append(user_id)
     except KeyError:
         data["subs"][channel_id] = [user_id]
@@ -163,4 +168,4 @@ if __name__ == "__main__":
     bot_polling_thread.start()
 
     # Start the Flask app
-    app.run(host='0.0.0.0', port=5555)
+    app.run(host='0.0.0.0', port=10000)
