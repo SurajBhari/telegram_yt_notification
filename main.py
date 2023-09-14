@@ -43,7 +43,7 @@ def start(message):
     user_id = message.chat.id
     try:
         command, *channel_id = message.text.split()[1].split("_")
-    except ValueError:
+    except (ValueError, IndexError):
         bot.reply_to(message, "Wrong command")
         return
     channel_id = "_".join(channel_id)
@@ -52,6 +52,9 @@ def start(message):
         return
     elif "subscribe" in command:
         bot.reply_to(message, subscribe(user_id, channel_id))
+        return
+    else:
+        bot.reply_to(message, "Wrong command")
         return
         
 
@@ -68,6 +71,8 @@ def subscribe(user, channel_id):
     if "subs" not in data:
         data["subs"] = {}
     try:
+        if user in data["subs"][channel_id]:
+            return "Already subscribed"
         data["subs"][channel_id].append(user)
     except KeyError:
         data["subs"][channel_id] = [user]
@@ -88,6 +93,8 @@ def unsubscribe(user, channel_id):
     if "subs" not in data:
         data["subs"] = {}
     try:
+        if user not in data["subs"][channel_id]:
+            return "Not subscribed"
         status = data["subs"][channel_id].remove(user)
         print(status)
     except KeyError:
@@ -97,70 +104,6 @@ def unsubscribe(user, channel_id):
         json.dump(data, f, indent=4)
     return f"UnSubscribed to {channel_name}"
 
-
-
-
-@bot.message_handler(commands=['subscribe'])
-def send_welcome(message):
-    args = message.text.split()[1:]
-    if not args:
-        bot.reply_to(message, "Please specify the channel id")
-        return
-    channel_id = args[0]
-    url_channel = f"https://youtube.com/channel/{channel_id}"
-    try:
-        html_data = get(url_channel).text
-        soup = BeautifulSoup(html_data, 'html.parser')
-        channel_name = soup.find("meta", property="og:title")["content"]
-    except:
-        bot.reply_to(message, "Channel not found")
-        return
-    user_id = message.chat.id
-    with open("data.json", "r") as f:
-        data = json.load(f)
-    try:
-        if user_id in data["subs"][channel_id]:
-            bot.reply_to(message, "You are already subscribed to this channel")
-            return
-        data["subs"][channel_id].append(user_id)
-    except KeyError:
-        data["subs"][channel_id] = [user_id]
-    with open("data.json", "w") as f:
-        json.dump(data, f, indent=4)
-    bot.reply_to(message, f"Subscribed to {channel_name}")
-    return
-
-
-
-@bot.message_handler(commands=['unsubscribe'])
-def send_welcome(message):
-    args = message.text.split()[1:]
-    if not args:
-        bot.reply_to(message, "Please specify the channel id")
-        return
-    channel_id = args[0]
-    url_channel = f"https://youtube.com/channel/{channel_id}"
-    try:
-        html_data = get(url_channel).text
-        soup = BeautifulSoup(html_data, 'html.parser')
-        channel_name = soup.find("meta", property="og:title")["content"]
-    except:
-        bot.reply_to(message, "Channel not found")
-        return
-    user_id = message.chat.id
-    with open("data.json", "r") as f:
-        data = json.load(f)
-    if channel_id not in data["subs"]:
-        bot.reply_to(message, "You are not subscribed to this channel")
-        return
-    try:
-        data["subs"][channel_id].remove(user_id)
-    except KeyError:
-        data["subs"][channel_id] = []
-    with open("data.json", "w") as f:
-        json.dump(data, f, indent=4)
-    bot.reply_to(message, f"Unsubscribed to {channel_name}")
-    return
 
 
 if __name__ == "__main__":
