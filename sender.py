@@ -49,7 +49,8 @@ for channel in data["subs"]:
         videos = scrapetube.get_channel(channel, content_type=type, sort_by="newest")
         count = 0
         for video in videos:
-            print(video["videoId"])
+            video_id = video["videoId"]
+            print(video_id)
             count += 1
             if count > 1:
                 break
@@ -61,7 +62,10 @@ for channel in data["subs"]:
                     print("not new")
                     print(ago)
                     continue
-            video_id = video["videoId"]
+            if type == "streams":
+                if video["thumbnailOverlays"][0]["thumbnailOverlayTimeStatusRenderer"]["style"] != "LIVE":
+                    print("not live")
+                    continue
             if video_id in known_videos:
                 print("known video")
                 continue
@@ -70,12 +74,13 @@ for channel in data["subs"]:
                 f.write(video_id+"\n")
             sent_to_count = 0
             # send notification to all subscribers
+            vtitle = video["headline"]["simpleText"] if type == "shorts" else video["title"]["runs"][0]["text"]
+            title = f"{channel_name} has posted a new video!" if type in ["videos", "shorts"] else f"{channel_name} is live now!"
+            message = f"{title}\n{vtitle}\nhttps://youtube.com/watch?v={video_id}"    
             for sub in data["subs"][channel]:
                 print(sub)
-                vtitle = video["headline"]["simpleText"] if type == "shorts" else video["title"]["runs"][0]["text"]
-                title = f"{channel_name} has posted a new video!" if type in ["videos", "shorts"] else f"{channel_name} is live now!"
                 try:
-                    bot.send_message(sub, f"{title}\n{vtitle}\nhttps://youtube.com/watch?v={video_id}")
+                    bot.send_message(sub, message)
                 except Exception as e:
                     print(e)
                     continue
